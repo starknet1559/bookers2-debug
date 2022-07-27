@@ -7,6 +7,12 @@ class User < ApplicationRecord
   has_many :books, dependent: :destroy
   has_many :favorites, dependent: :destroy
   has_many :book_comments, dependent: :destroy
+  #フォローする側のUserから見て、フォローされる側のUserを(中間テーブルを介して)集める。なので親はfollower_id(フォローする側)
+  has_many :active_relationships, class_name: "Relationship",foreign_key: :follower_id,dependent: :destroy
+  # 中間テーブルを介して「follower」モデルのUser(フォローされた側)を集めることを「followings」と定義
+  has_many :followings, through: :active_relationships, source: :followed
+  has_many :passive_relationships, class_name: "Relationship",foreign_key: :followed_id,dependent: :destroy
+  has_many :followers, through: :passive_relationships, source: :follower
   has_one_attached :profile_image
 
   validates :name,presence: true, length: { minimum: 2, maximum: 20 }, uniqueness: true
@@ -22,5 +28,8 @@ def get_profile_image(width, height)
     profile_image.variant(resize_to_limit: [width, height]).processed
 end
 
+def followed_by?(user)
+  passive_relationships.find_by(follower_id: user.id).present?
+end
 
 end
